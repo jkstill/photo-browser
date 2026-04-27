@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block content %}
+  <section class="hero">
+    <div>
+      <p class="eyebrow">Search</p>
+      <h1>{% if query %}Results for "{{ query }}"{% else %}Search the archive{% endif %}</h1>
+      <p class="hero-copy">
+        {% if query %}
+          {{ pagination.total }} matches{% if indexed_at %} · index built {{ format_timestamp(indexed_at) }}{% endif %}
+        {% else %}
+          Search walks the archive index and matches folder names plus image filenames.
+        {% endif %}
+      </p>
+    </div>
+  </section>
+
+  {% if query %}
+    <section class="control-bar">
+      <form method="get" class="sort-form">
+        <input type="hidden" name="q" value="{{ query }}">
+        <label>
+          Sort
+          <select name="sort">
+            {% for option, label in sort_options.items() %}
+              <option value="{{ option }}" {% if sort_by == option %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>
+          Order
+          <select name="order">
+            <option value="asc" {% if sort_order == "asc" %}selected{% endif %}>Ascending</option>
+            <option value="desc" {% if sort_order == "desc" %}selected{% endif %}>Descending</option>
+          </select>
+        </label>
+        <button type="submit">Apply</button>
+      </form>
+    </section>
+  {% endif %}
+
+  {% if index_truncated %}
+    <p class="callout">Search indexing hit the configured maximum entry count. Increase <code>PHOTO_BROWSER_MAX_INDEX_ENTRIES</code> if needed.</p>
+  {% endif %}
+
+  {% for warning in index_warnings %}
+    <p class="callout warning">{{ warning }}</p>
+  {% endfor %}
+
+  {% if query and pagination.items %}
+    <section class="section-block">
+      <div class="file-list">
+        {% for item in pagination.items %}
+          <div class="file-row">
+            <div>
+              {% if item.is_dir %}
+                <strong><a href="{{ directory_href(item.path) }}">{{ item.name }}/</a></strong>
+                <small>Directory · {{ item.path }}</small>
+              {% else %}
+                <strong><a href="{{ photo_href(item.path, sort=sort_by, order=sort_order) }}">{{ item.name }}</a></strong>
+                <small>{{ item.parent_path }} · {{ format_size(item.size_bytes) }} · {{ format_timestamp(item.modified_at) }}</small>
+              {% endif %}
+            </div>
+            <div class="file-row__actions">
+              {% if item.is_dir %}
+                <a href="{{ directory_href(item.path) }}">Browse</a>
+              {% else %}
+                <a href="{{ download_href(item.path) }}">Download</a>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    {% if pagination.total_pages > 1 %}
+      <nav class="pager" aria-label="Search pagination">
+        {% if pagination.has_prev %}
+          <a class="button ghost" href="{{ url_for('search', q=query, sort=sort_by, order=sort_order, page=pagination.prev_page) }}">Previous</a>
+        {% endif %}
+        <span>Page {{ pagination.page }} of {{ pagination.total_pages }}</span>
+        {% if pagination.has_next %}
+          <a class="button ghost" href="{{ url_for('search', q=query, sort=sort_by, order=sort_order, page=pagination.next_page) }}">Next</a>
+        {% endif %}
+      </nav>
+    {% endif %}
+  {% elif query %}
+    <p class="empty-state">No archive items matched that search.</p>
+  {% else %}
+    <p class="empty-state">Enter a search term above to look for folders or photos.</p>
+  {% endif %}
+{% endblock %}

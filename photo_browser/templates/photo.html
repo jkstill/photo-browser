@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block content %}
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <a href="{{ directory_href('') }}">Archive</a>
+    {% for crumb in breadcrumbs %}
+      <span>/</span>
+      <a href="{{ directory_href(crumb.path) }}">{{ crumb.label }}</a>
+    {% endfor %}
+    <span>/</span>
+    <span>{{ photo.name }}</span>
+  </nav>
+
+  <section class="photo-layout">
+    <div class="viewer">
+      <img src="{{ media_href(photo.path) }}" alt="{{ photo.name }}">
+    </div>
+
+    <aside class="inspector">
+      <p class="eyebrow">Photo</p>
+      <h1>{{ photo.name }}</h1>
+      <dl class="detail-list">
+        <div>
+          <dt>Folder</dt>
+          <dd><a href="{{ directory_href(parent_path) }}?sort={{ sort_by }}&order={{ sort_order }}&page={{ return_page }}">{{ parent_path or "/" }}</a></dd>
+        </div>
+        <div>
+          <dt>Modified</dt>
+          <dd>{{ format_timestamp(photo.modified_at) }}</dd>
+        </div>
+        <div>
+          <dt>Size</dt>
+          <dd>{{ format_size(photo.size_bytes) }}</dd>
+        </div>
+      </dl>
+
+      <div class="stack-actions">
+        <a class="button" href="{{ download_href(photo.path) }}">Download Photo</a>
+        <a class="button ghost" href="{{ upstream_url }}" target="_blank" rel="noreferrer">Open Original</a>
+        <a class="button ghost" href="{{ directory_href(parent_path) }}?sort={{ sort_by }}&order={{ sort_order }}&page={{ return_page }}">Back to Folder</a>
+      </div>
+
+      <div class="adjacent-nav">
+        {% if previous_photo %}
+          <a class="adjacent-card" href="{{ photo_href(previous_photo.path, sort=sort_by, order=sort_order, page=return_page) }}">
+            <small>Previous</small>
+            <strong>{{ previous_photo.name }}</strong>
+          </a>
+        {% endif %}
+        {% if next_photo %}
+          <a class="adjacent-card" href="{{ photo_href(next_photo.path, sort=sort_by, order=sort_order, page=return_page) }}">
+            <small>Next</small>
+            <strong>{{ next_photo.name }}</strong>
+          </a>
+        {% endif %}
+      </div>
+    </aside>
+  </section>
+{% endblock %}

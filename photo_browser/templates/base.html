@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ title }} · Photo Browser</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="site-header">
+        <a class="brand" href="{{ directory_href('') }}">
+          <span class="brand-mark">PB</span>
+          <span>
+            <strong>Photo Browser</strong>
+            <small>Static archive frontend</small>
+          </span>
+        </a>
+        <form class="search-bar" action="{{ url_for('search') }}" method="get">
+          <label class="sr-only" for="q">Search archive</label>
+          <input id="q" name="q" type="search" placeholder="Search folders and photos" value="{{ request.args.get('q', '') }}">
+          <button type="submit">Search</button>
+        </form>
+      </header>
+
+      <main class="page-content">
+        {% block content %}{% endblock %}
+      </main>
+
+      <footer class="site-footer">
+        <span>Upstream archive: <code>{{ config.archive_base_url }}</code></span>
+      </footer>
+    </div>
+  </body>
+</html>

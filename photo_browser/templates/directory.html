@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block content %}
+  <section class="hero">
+    <div>
+      <p class="eyebrow">{{ "Archive Root" if not current_path else "Directory" }}</p>
+      <h1>{{ current_name }}</h1>
+      <p class="hero-copy">
+        {{ directories|length }} folders · {{ pagination.total }} photos{% if other_files %} · {{ other_files|length }} other files{% endif %}
+      </p>
+    </div>
+    <div class="hero-actions">
+      {% if parent_path is not none %}
+        <a class="button ghost" href="{{ directory_href(parent_path) }}">Up One Level</a>
+      {% endif %}
+      <a class="button" href="{{ upstream_url }}" target="_blank" rel="noreferrer">Open Upstream</a>
+    </div>
+  </section>
+
+  {% if breadcrumbs %}
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+      <a href="{{ directory_href('') }}">Archive</a>
+      {% for crumb in breadcrumbs %}
+        <span>/</span>
+        <a href="{{ directory_href(crumb.path) }}">{{ crumb.label }}</a>
+      {% endfor %}
+    </nav>
+  {% endif %}
+
+  <section class="control-bar">
+    <form method="get" class="sort-form">
+      <label>
+        Sort
+        <select name="sort">
+          {% for option, label in sort_options.items() %}
+            <option value="{{ option }}" {% if sort_by == option %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Order
+        <select name="order">
+          <option value="asc" {% if sort_order == "asc" %}selected{% endif %}>Ascending</option>
+          <option value="desc" {% if sort_order == "desc" %}selected{% endif %}>Descending</option>
+        </select>
+      </label>
+      <button type="submit">Apply</button>
+    </form>
+  </section>
+
+  <section class="section-block">
+    <div class="section-heading">
+      <h2>Folders</h2>
+      <span>{{ directories|length }}</span>
+    </div>
+    {% if directories %}
+      <div class="folder-grid">
+        {% for directory in directories %}
+          <a class="folder-card" href="{{ directory_href(directory.path) }}">
+            <span class="folder-card__eyebrow">Folder</span>
+            <strong>{{ directory.name }}</strong>
+            <small>{{ format_timestamp(directory.modified_at) }}</small>
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="empty-state">No subdirectories found here.</p>
+    {% endif %}
+  </section>
+
+  <section class="section-block">
+    <div class="section-heading">
+      <h2>Photos</h2>
+      <span>
+        {% if pagination.total %}
+          {{ pagination.start_item }}-{{ pagination.end_item }} of {{ pagination.total }}
+        {% else %}
+          0
+        {% endif %}
+      </span>
+    </div>
+    {% if pagination.items %}
+      <div class="photo-grid">
+        {% for photo in pagination.items %}
+          <a class="photo-card" href="{{ photo_href(photo.path, sort=sort_by, order=sort_order, page=pagination.page) }}">
+            <span class="photo-frame">
+              <img src="{{ media_href(photo.path) }}" alt="{{ photo.name }}" loading="lazy" decoding="async">
+            </span>
+            <span class="photo-card__meta">
+              <strong>{{ photo.name }}</strong>
+              <small>{{ format_size(photo.size_bytes) }} · {{ format_timestamp(photo.modified_at) }}</small>
+            </span>
+          </a>
+        {% endfor %}
+      </div>
+
+      {% if pagination.total_pages > 1 %}
+        <nav class="pager" aria-label="Photo pagination">
+          {% if pagination.has_prev %}
+            <a class="button ghost" href="{{ directory_href(current_path) }}?sort={{ sort_by }}&order={{ sort_order }}&page={{ pagination.prev_page }}">Previous</a>
+          {% endif %}
+          <span>Page {{ pagination.page }} of {{ pagination.total_pages }}</span>
+          {% if pagination.has_next %}
+            <a class="button ghost" href="{{ directory_href(current_path) }}?sort={{ sort_by }}&order={{ sort_order }}&page={{ pagination.next_page }}">Next</a>
+          {% endif %}
+        </nav>
+      {% endif %}
+    {% else %}
+      <p class="empty-state">No photos found in this directory.</p>
+    {% endif %}
+  </section>
+
+  {% if other_files %}
+    <section class="section-block">
+      <div class="section-heading">
+        <h2>Other Files</h2>
+        <span>{{ other_files|length }}</span>
+      </div>
+      <div class="file-list">
+        {% for item in other_files %}
+          <div class="file-row">
+            <div>
+              <strong>{{ item.name }}</strong>
+              <small>{{ format_timestamp(item.modified_at) }}</small>
+            </div>
+            <div class="file-row__actions">
+              <span>{{ format_size(item.size_bytes) }}</span>
+              <a href="{{ download_href(item.path) }}">Download</a>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+{% endblock %}

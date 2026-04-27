@@ -1,0 +1,2 @@
+[console_scripts]
+photo-browser = photo_browser.__main__:main

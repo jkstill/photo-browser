@@ -1,0 +1,17 @@
+[Unit]
+Description=Photo Browser
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=photo-browser
+Group=photo-browser
+WorkingDirectory=/opt/photo-browser
+EnvironmentFile=/etc/photo-browser/photo-browser.env
+ExecStart=/opt/photo-browser/.venv/bin/python -m photo_browser
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
