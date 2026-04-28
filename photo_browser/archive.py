@@ -77,7 +77,10 @@ def parse_directory_timestamp(value: str) -> datetime | None:
     cleaned = value.strip()
     if not cleaned:
         return None
-    return datetime.strptime(cleaned, "%d-%b-%Y %H:%M").replace(tzinfo=UTC)
+    try:
+        return datetime.strptime(cleaned, "%d-%b-%Y %H:%M").replace(tzinfo=UTC)
+    except ValueError:
+        return None
 
 
 def parse_directory_size(value: str) -> int | None:

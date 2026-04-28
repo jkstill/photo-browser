@@ -56,6 +56,7 @@ class ArchiveParsingTests(unittest.TestCase):
             parse_directory_timestamp("13-Jun-2025 13:56"),
             datetime(2025, 6, 13, 13, 56, tzinfo=UTC),
         )
+        self.assertIsNone(parse_directory_timestamp("13-Sep-30828 19:48"))
 
     def test_parse_directory_listing(self) -> None:
         entries = parse_directory_listing(SAMPLE_LISTING, "Trees/Trees-TV-Park-2025-06-06")
