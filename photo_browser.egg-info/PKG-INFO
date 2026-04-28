@@ -4,8 +4,10 @@ Version: 0.1.0
 Summary: Browsable photo archive frontend for static directory listings.
 Requires-Python: >=3.12
 Description-Content-Type: text/markdown
+License-File: LICENSE
 Requires-Dist: Flask<4.0,>=3.0
 Requires-Dist: httpx<1.0,>=0.28
+Dynamic: license-file
 
 # Photo Browser
 

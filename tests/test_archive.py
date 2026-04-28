@@ -7,6 +7,7 @@ from photo_browser.archive import (
     parse_directory_size,
     parse_directory_timestamp,
 )
+from photo_browser.models import ArchiveEntry, DirectoryListing
 
 
 SAMPLE_LISTING = """
@@ -64,6 +65,18 @@ class ArchiveParsingTests(unittest.TestCase):
         self.assertTrue(entries[1].is_image)
         self.assertEqual(entries[1].size_bytes, 1363148)
         self.assertEqual(entries[2].name, "notes.txt")
+
+    def test_directory_listing_media_classification(self) -> None:
+        photo = ArchiveEntry(name="still.jpg", path="gallery/still.jpg", is_dir=False)
+        video = ArchiveEntry(name="clip.avi", path="gallery/clip.avi", is_dir=False)
+        text = ArchiveEntry(name="notes.txt", path="gallery/notes.txt", is_dir=False)
+        listing = DirectoryListing(path="gallery", directories=[], files=[photo, video, text])
+
+        self.assertTrue(video.is_video)
+        self.assertTrue(video.is_media)
+        self.assertEqual([entry.name for entry in listing.media_files], ["still.jpg", "clip.avi"])
+        self.assertEqual([entry.name for entry in listing.other_files], ["notes.txt"])
+
 
 
 if __name__ == "__main__":

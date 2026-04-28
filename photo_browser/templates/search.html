@@ -8,7 +8,7 @@
         {% if query %}
           {{ pagination.total }} matches{% if indexed_at %} · index built {{ format_timestamp(indexed_at) }}{% endif %}
         {% else %}
-          Search walks the archive index and matches folder names plus image filenames.
+          Search walks the archive index and matches folder names plus media filenames.
         {% endif %}
       </p>
     </div>
@@ -57,7 +57,7 @@
                 <small>Directory · {{ item.path }}</small>
               {% else %}
                 <strong><a href="{{ photo_href(item.path, sort=sort_by, order=sort_order) }}">{{ item.name }}</a></strong>
-                <small>{{ item.parent_path }} · {{ format_size(item.size_bytes) }} · {{ format_timestamp(item.modified_at) }}</small>
+                <small>{{ media_type_label(item) }} · {{ item.parent_path }} · {{ format_size(item.size_bytes) }} · {{ format_timestamp(item.modified_at) }}</small>
               {% endif %}
             </div>
             <div class="file-row__actions">
