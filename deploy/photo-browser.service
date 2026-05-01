@@ -1,5 +1,5 @@
 [Unit]
-Description=Photo Browser
+Description=Photo Browser web application
 After=network-online.target
 Wants=network-online.target
 
@@ -9,9 +9,30 @@ User=photo-browser
 Group=photo-browser
 WorkingDirectory=/opt/photo-browser
 EnvironmentFile=/etc/photo-browser/photo-browser.env
-ExecStart=/opt/photo-browser/.venv/bin/python -m photo_browser
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/opt/photo-browser/.venv/bin/photo-browser
 Restart=on-failure
 RestartSec=5
+TimeoutStopSec=30
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectControlGroups=true
+ProtectHome=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectSystem=strict
+ReadOnlyPaths=/opt/photo-browser
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallArchitectures=native
 
 [Install]
 WantedBy=multi-user.target
