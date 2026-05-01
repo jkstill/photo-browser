@@ -17,7 +17,7 @@ Environment variables:
 
 - `PHOTO_ARCHIVE_BASE_URL`: upstream archive root. Default: `http://poirot:4242`
 - `PHOTO_BROWSER_HOST`: bind host. Default: `0.0.0.0`
-- `PHOTO_BROWSER_PORT`: bind port. Default: `8080`
+- `PHOTO_BROWSER_PORT`: bind port. Default: `8090`
 - `PHOTO_BROWSER_REQUEST_TIMEOUT_SECONDS`: upstream timeout. Default: `15`
 - `PHOTO_BROWSER_BROWSE_PAGE_SIZE`: photos per directory page. Default: `24`
 - `PHOTO_BROWSER_SEARCH_PAGE_SIZE`: results per search page. Default: `40`
@@ -34,7 +34,7 @@ pip install -e .
 photo-browser
 ```
 
-Then open `http://127.0.0.1:8080`.
+Then open `http://127.0.0.1:8090`.
 
 ## Tests
 
@@ -48,3 +48,23 @@ Example deployment artifacts live in [`deploy/`](deploy):
 
 - `deploy/photo-browser.service`
 - `deploy/photo-browser.env.example`
+- `deploy/photo-browser.sysusers.conf`
+
+The unit assumes the app checkout lives at `/opt/photo-browser` with a virtual
+environment at `/opt/photo-browser/.venv`. If you deploy elsewhere, update the
+paths in `deploy/photo-browser.service`.
+
+Example install:
+
+```bash
+sudo install -D -m 0644 deploy/photo-browser.service /etc/systemd/system/photo-browser.service
+sudo install -D -m 0644 deploy/photo-browser.sysusers.conf /etc/sysusers.d/photo-browser.conf
+sudo systemd-sysusers
+sudo install -d -m 0750 -o root -g photo-browser /etc/photo-browser
+sudo install -m 0640 -o root -g photo-browser deploy/photo-browser.env.example /etc/photo-browser/photo-browser.env
+sudo systemctl daemon-reload
+sudo systemctl enable --now photo-browser.service
+```
+
+The unit runs the packaged `photo-browser` entrypoint and reads configuration
+from `/etc/photo-browser/photo-browser.env`.

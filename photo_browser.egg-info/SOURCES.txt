@@ -1,3 +1,4 @@
+LICENSE
 README.md
 pyproject.toml
 photo_browser/__init__.py
@@ -18,4 +19,5 @@ photo_browser/templates/directory.html
 photo_browser/templates/error.html
 photo_browser/templates/photo.html
 photo_browser/templates/search.html
+tests/test_app.py
 tests/test_archive.py

@@ -5,7 +5,7 @@
       <p class="eyebrow">{{ "Archive Root" if not current_path else "Directory" }}</p>
       <h1>{{ current_name }}</h1>
       <p class="hero-copy">
-        {{ directories|length }} folders · {{ pagination.total }} photos{% if other_files %} · {{ other_files|length }} other files{% endif %}
+        {{ directories|length }} folders · {{ pagination.total }} media items{% if video_count %} · {{ video_count }} videos{% endif %}{% if other_files %} · {{ other_files|length }} other files{% endif %}
       </p>
     </div>
     <div class="hero-actions">
@@ -69,7 +69,7 @@
 
   <section class="section-block">
     <div class="section-heading">
-      <h2>Photos</h2>
+      <h2>Media</h2>
       <span>
         {% if pagination.total %}
           {{ pagination.start_item }}-{{ pagination.end_item }} of {{ pagination.total }}
@@ -80,14 +80,19 @@
     </div>
     {% if pagination.items %}
       <div class="photo-grid">
-        {% for photo in pagination.items %}
-          <a class="photo-card" href="{{ photo_href(photo.path, sort=sort_by, order=sort_order, page=pagination.page) }}">
-            <span class="photo-frame">
-              <img src="{{ media_href(photo.path) }}" alt="{{ photo.name }}" loading="lazy" decoding="async">
+        {% for entry in pagination.items %}
+          <a class="photo-card" href="{{ photo_href(entry.path, sort=sort_by, order=sort_order, page=pagination.page) }}">
+            <span class="photo-frame{% if entry.is_video %} video-thumb{% endif %}">
+              {% if entry.is_video %}
+                <span class="video-thumb__badge">Video</span>
+                <span class="video-thumb__icon" aria-hidden="true">▶</span>
+              {% else %}
+                <img src="{{ media_href(entry.path) }}" alt="{{ entry.name }}" loading="lazy" decoding="async">
+              {% endif %}
             </span>
             <span class="photo-card__meta">
-              <strong>{{ photo.name }}</strong>
-              <small>{{ format_size(photo.size_bytes) }} · {{ format_timestamp(photo.modified_at) }}</small>
+              <strong>{{ entry.name }}</strong>
+              <small>{{ media_type_label(entry) }} · {{ format_size(entry.size_bytes) }} · {{ format_timestamp(entry.modified_at) }}</small>
             </span>
           </a>
         {% endfor %}
@@ -105,7 +110,7 @@
         </nav>
       {% endif %}
     {% else %}
-      <p class="empty-state">No photos found in this directory.</p>
+      <p class="empty-state">No media files found in this directory.</p>
     {% endif %}
   </section>
 

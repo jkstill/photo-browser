@@ -5,7 +5,7 @@ from datetime import datetime
 from pathlib import PurePosixPath
 from urllib.parse import quote
 
-from flask import Flask, Response, abort, render_template, request, url_for
+from flask import Flask, Response, abort, render_template, request, stream_with_context, url_for
 
 from .archive import (
     ArchiveClient,
@@ -93,6 +93,7 @@ def create_app(config: AppConfig | None = None) -> Flask:
             "download_href": download_href,
             "format_timestamp": format_timestamp,
             "format_size": format_size,
+            "media_type_label": media_type_label,
             "sort_options": SORT_OPTIONS,
         }
 
@@ -124,26 +125,26 @@ def create_app(config: AppConfig | None = None) -> Flask:
         current_page = coerce_positive_int(page_argument, 1)
 
         listing = archive_client.list_directory(PurePosixPath(normalized).parent.as_posix())
-        photos = sort_entries(listing.photos, sort_by=sort_by, sort_order=sort_order)
-        photo_map = {photo.path: index for index, photo in enumerate(photos)}
-        if normalized not in photo_map:
+        media_items = sort_entries(listing.media_files, sort_by=sort_by, sort_order=sort_order)
+        media_map = {entry.path: index for index, entry in enumerate(media_items)}
+        if normalized not in media_map:
             abort(404)
 
-        selected = photos[photo_map[normalized]]
-        current_index = photo_map[normalized]
-        previous_photo = photos[current_index - 1] if current_index > 0 else None
-        next_photo = photos[current_index + 1] if current_index + 1 < len(photos) else None
+        selected = media_items[media_map[normalized]]
+        current_index = media_map[normalized]
+        previous_entry = media_items[current_index - 1] if current_index > 0 else None
+        next_entry = media_items[current_index + 1] if current_index + 1 < len(media_items) else None
         return_page = ((current_index) // max(1, app_config().browse_page_size)) + 1
         effective_page = return_page if page_argument is None else current_page
 
         return render_template(
             "photo.html",
             title=selected.name,
-            photo=selected,
+            entry=selected,
             parent_path=selected.parent_path,
             breadcrumbs=build_breadcrumbs(selected.parent_path),
-            previous_photo=previous_photo,
-            next_photo=next_photo,
+            previous_entry=previous_entry,
+            next_entry=next_entry,
             sort_by=sort_by,
             sort_order=sort_order,
             return_page=effective_page,
@@ -197,9 +198,9 @@ def create_app(config: AppConfig | None = None) -> Flask:
         page = coerce_positive_int(request.args.get("page"), 1)
 
         directories = sort_entries(listing.directories, sort_by=sort_by, sort_order=sort_order)
-        photos = sort_entries(listing.photos, sort_by=sort_by, sort_order=sort_order)
+        media_items = sort_entries(listing.media_files, sort_by=sort_by, sort_order=sort_order)
         other_files = sort_entries(listing.other_files, sort_by=sort_by, sort_order=sort_order)
-        pagination = paginate(photos, page, app_config().browse_page_size)
+        pagination = paginate(media_items, page, app_config().browse_page_size)
 
         current_name = "Photo Archive" if not normalized else PurePosixPath(normalized).name
         parent_path = None if not normalized else listing.path and PurePosixPath(listing.path).parent.as_posix()
@@ -215,6 +216,7 @@ def create_app(config: AppConfig | None = None) -> Flask:
             breadcrumbs=build_breadcrumbs(normalized),
             directories=directories,
             pagination=pagination,
+            video_count=len(listing.videos),
             other_files=other_files,
             sort_by=sort_by,
             sort_order=sort_order,
@@ -223,20 +225,43 @@ def create_app(config: AppConfig | None = None) -> Flask:
 
     def render_media_response(archive_path: str, *, download: bool) -> Response:
         normalized = normalize_archive_path(archive_path)
-        payload, headers = archive_client.fetch_asset(normalized)
+        upstream_response = archive_client.stream_asset(
+            normalized,
+            range_header=request.headers.get("Range"),
+        )
         filename = PurePosixPath(normalized).name
         content_disposition = "attachment" if download else "inline"
-        response = Response(payload, mimetype=headers["content-type"])
-        response.headers["Cache-Control"] = "public, max-age=300"
-        response.headers["Content-Disposition"] = (
+        response_headers = {
+            "Cache-Control": "public, max-age=300",
+            "Content-Disposition": (
             f"{content_disposition}; filename=\"{filename}\"; "
             f"filename*=UTF-8''{quote(filename)}"
+            ),
+        }
+        for header_name in (
+            "Accept-Ranges",
+            "Content-Length",
+            "Content-Range",
+            "Content-Type",
+            "ETag",
+            "Last-Modified",
+        ):
+            header_value = upstream_response.headers.get(header_name)
+            if header_value:
+                response_headers[header_name] = header_value
+
+        def generate() -> bytes:
+            try:
+                yield from upstream_response.iter_bytes()
+            finally:
+                upstream_response.close()
+
+        return Response(
+            stream_with_context(generate()),
+            status=upstream_response.status_code,
+            headers=response_headers,
+            direct_passthrough=True,
         )
-        if headers["content-length"]:
-            response.headers["Content-Length"] = headers["content-length"]
-        if headers["last-modified"]:
-            response.headers["Last-Modified"] = headers["last-modified"]
-        return response
 
     def app_config() -> AppConfig:
         return app.extensions["photo_browser"]["config_obj"]
@@ -325,6 +350,14 @@ def format_timestamp(value: datetime | None) -> str:
     if value is None:
         return "Unknown"
     return value.astimezone().strftime("%Y-%m-%d %H:%M")
+
+
+def media_type_label(entry: ArchiveEntry) -> str:
+    if entry.is_video:
+        return "Video"
+    if entry.is_image:
+        return "Photo"
+    return "File"
 
 
 def sort_search_results(

@@ -77,7 +77,10 @@ def parse_directory_timestamp(value: str) -> datetime | None:
     cleaned = value.strip()
     if not cleaned:
         return None
-    return datetime.strptime(cleaned, "%d-%b-%Y %H:%M").replace(tzinfo=UTC)
+    try:
+        return datetime.strptime(cleaned, "%d-%b-%Y %H:%M").replace(tzinfo=UTC)
+    except ValueError:
+        return None
 
 
 def parse_directory_size(value: str) -> int | None:
@@ -224,23 +227,26 @@ class ArchiveClient:
         files = [entry for entry in entries if not entry.is_dir]
         return DirectoryListing(path=normalized, directories=directories, files=files)
 
-    def fetch_asset(self, path: str) -> tuple[bytes, dict[str, str]]:
+    def stream_asset(self, path: str, *, range_header: str | None = None) -> httpx.Response:
         normalized = normalize_archive_path(path)
         url = archive_path_to_url(self._base_url, normalized, is_dir=False)
-        response = self._request(url)
-        headers = {
-            "content-type": response.headers.get("content-type", "application/octet-stream"),
-            "content-length": response.headers.get("content-length", ""),
-            "last-modified": response.headers.get("last-modified", ""),
-        }
-        return response.content, headers
+        headers = {"Range": range_header} if range_header else None
+        return self._request(url, headers=headers, stream=True)
 
-    def _request(self, url: str) -> httpx.Response:
+    def _request(
+        self,
+        url: str,
+        *,
+        headers: dict[str, str] | None = None,
+        stream: bool = False,
+    ) -> httpx.Response:
         try:
-            response = self._client.get(url)
+            request = self._client.build_request("GET", url, headers=headers)
+            response = self._client.send(request, stream=stream)
             response.raise_for_status()
             return response
         except httpx.HTTPStatusError as exc:
+            exc.response.close()
             if exc.response.status_code == 404:
                 raise ArchiveError("The requested archive item was not found.", status_code=404) from exc
             raise ArchiveError("The upstream archive returned an unexpected status.") from exc
@@ -295,8 +301,8 @@ class ArchiveIndex:
             if truncated:
                 break
 
-            for photo in sorted(listing.photos, key=lambda item: natural_sort_key(item.name)):
-                entries.append(photo)
+            for media_entry in sorted(listing.media_files, key=lambda item: natural_sort_key(item.name)):
+                entries.append(media_entry)
                 if len(entries) >= self._max_entries:
                     truncated = True
                     break

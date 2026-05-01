@@ -7,17 +7,35 @@
       <a href="{{ directory_href(crumb.path) }}">{{ crumb.label }}</a>
     {% endfor %}
     <span>/</span>
-    <span>{{ photo.name }}</span>
+    <span>{{ entry.name }}</span>
   </nav>
 
   <section class="photo-layout">
     <div class="viewer">
-      <img src="{{ media_href(photo.path) }}" alt="{{ photo.name }}">
+      {% if entry.is_video %}
+        <div class="video-player" data-video-player>
+          <video class="media-player" data-video controls preload="metadata" playsinline>
+            <source src="{{ media_href(entry.path) }}">
+            Your browser does not support embedded video playback.
+          </video>
+          <div class="player-controls" data-controls hidden>
+            <button type="button" class="button" data-play>Play</button>
+            <button type="button" class="button ghost" data-mute>Mute</button>
+            <label class="player-seek">
+              <span class="sr-only">Seek video</span>
+              <input type="range" min="0" max="0" value="0" step="0.1" data-seek>
+            </label>
+            <span class="player-time" data-time>0:00 / 0:00</span>
+          </div>
+        </div>
+      {% else %}
+        <img src="{{ media_href(entry.path) }}" alt="{{ entry.name }}">
+      {% endif %}
     </div>
 
     <aside class="inspector">
-      <p class="eyebrow">Photo</p>
-      <h1>{{ photo.name }}</h1>
+      <p class="eyebrow">{{ media_type_label(entry) }}</p>
+      <h1>{{ entry.name }}</h1>
       <dl class="detail-list">
         <div>
           <dt>Folder</dt>
@@ -25,34 +43,39 @@
         </div>
         <div>
           <dt>Modified</dt>
-          <dd>{{ format_timestamp(photo.modified_at) }}</dd>
+          <dd>{{ format_timestamp(entry.modified_at) }}</dd>
         </div>
         <div>
           <dt>Size</dt>
-          <dd>{{ format_size(photo.size_bytes) }}</dd>
+          <dd>{{ format_size(entry.size_bytes) }}</dd>
         </div>
       </dl>
 
       <div class="stack-actions">
-        <a class="button" href="{{ download_href(photo.path) }}">Download Photo</a>
+        <a class="button" href="{{ download_href(entry.path) }}">Download {{ media_type_label(entry) }}</a>
         <a class="button ghost" href="{{ upstream_url }}" target="_blank" rel="noreferrer">Open Original</a>
         <a class="button ghost" href="{{ directory_href(parent_path) }}?sort={{ sort_by }}&order={{ sort_order }}&page={{ return_page }}">Back to Folder</a>
       </div>
 
       <div class="adjacent-nav">
-        {% if previous_photo %}
-          <a class="adjacent-card" href="{{ photo_href(previous_photo.path, sort=sort_by, order=sort_order, page=return_page) }}">
+        {% if previous_entry %}
+          <a class="adjacent-card" href="{{ photo_href(previous_entry.path, sort=sort_by, order=sort_order, page=return_page) }}">
             <small>Previous</small>
-            <strong>{{ previous_photo.name }}</strong>
+            <strong>{{ previous_entry.name }}</strong>
           </a>
         {% endif %}
-        {% if next_photo %}
-          <a class="adjacent-card" href="{{ photo_href(next_photo.path, sort=sort_by, order=sort_order, page=return_page) }}">
+        {% if next_entry %}
+          <a class="adjacent-card" href="{{ photo_href(next_entry.path, sort=sort_by, order=sort_order, page=return_page) }}">
             <small>Next</small>
-            <strong>{{ next_photo.name }}</strong>
+            <strong>{{ next_entry.name }}</strong>
           </a>
         {% endif %}
       </div>
     </aside>
   </section>
+{% endblock %}
+{% block scripts %}
+  {% if entry.is_video %}
+    <script src="{{ url_for('static', filename='player.js') }}"></script>
+  {% endif %}
 {% endblock %}
